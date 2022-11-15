@@ -1,23 +1,26 @@
 import numpy as np
 import os
-import flask
 from PIL import Image
-from flask import flask, request, render_template, url_for
+from flask import Flask, request, render_template, url_for
 from werkzeug.utils import secure_filename, redirect
-from gevent.pywsgi import WSGIServer
+#from gevent.pywsgi import WSGIServer
 from keras.models import load_model
 from keras.preprocessing import image
 from flask import send_from_directory
 
-FOLDER = 'D:\IBM\Test Folder\ImagesFiles'
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = FOLDER
+UPLOAD_FOLDER = 'D:/ibm/data'
 
-model = load_model("digit_classifier.h5")
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+model = load_model("./models/mnistCNN.h5")
+
 
 @app.route('/')
 def index():
-    return render_template('HDR front end.html')
+    return render_template('index.html')
+
 
 @app.route('/predict', methods=['GET', 'POST'])
 def upload():
@@ -25,14 +28,20 @@ def upload():
         f = request.files["image"]
         filepath = secure_filename(f.filename)
         f.save(os.path.join(app.config['UPLOAD_FOLDER'], filepath))
-        uploading_img = os.path.join(FOLDER, filepath)
-        img = Image.open(uploading_img).convert("L") 
-        img = img.resize((28, 28))
-        im2arr = np.array(img)
-        im2arr = im2arr.reshape(1, 28, 28, 1)
-        predict = model.predict(im2arr)
-        num = np.argmax(predict, axis=1)
+
+        upload_img = os.path.join(UPLOAD_FOLDER, filepath)
+        img = Image.open(upload_img).convert("L")  # convert image to monochrome
+        img = img.resize((28, 28))  # resizing of input image
+
+        im2arr = np.array(img)  # converting to image
+        im2arr = im2arr.reshape(1, 28, 28, 1)  # reshaping according to our requirement
+
+        pred = model.predict(im2arr)
+
+        num = np.argmax(pred, axis=1)  # printing our Labels
+
         return render_template('predict.html', num=str(num[0]))
+
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=False)
